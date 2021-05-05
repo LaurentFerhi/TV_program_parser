@@ -45,6 +45,18 @@ def get_content(soup):
                 {'class','synopsis-twoPart resume'}).getText().replace('\n','').replace('Lire la suite','')
         except AttributeError:
             info['description'] ='Aucune description'
+        
+        # Overview
+        info['genre'] = find_element(soup_desc, 'div', 'class', 'overview-overviewSubtitle')
+        
+        # Summary (casting)
+        if info['type'] == 'Cinéma':
+            try:
+                info['casting'] = soup_desc.find("meta",  property='og:description')['content'].split('...')[0]
+            except AttributeError:
+                info['casting'] =''   
+        else:
+            info['casting'] ='' 
 
         # insert into data
         data[idy] = info
@@ -63,7 +75,6 @@ def get_content(soup):
 
     # append channels
     df['chaines'] = chaines
-    #df = df.set_index('chaines')
 
     # merge broadcast columns
     df['diffusion'] = df.apply(lambda x: x['new']+x['live']+x['rebroadcast'],axis=1)
@@ -100,10 +111,12 @@ def generate_report(df):
                 extract['sous_titre'],
             ))
             # write meta
-            f.write('<p><em>{} - {} - {}</em></p>\n'.format(
+            f.write('<p><em>{} - {} - {} - {} - {}</em></p>\n'.format(
                 extract['type'],
                 extract['duree'],
                 extract['diffusion'],
+                extract['genre'],
+                extract['casting'],
             ))
             # write desc
             f.write('<p>{}</p>\n'.format(
@@ -117,6 +130,5 @@ if __name__ == '__main__':
     url = 'https://www.programme-tv.net/'
     page = requests.get(url)
     soup = bs4.BeautifulSoup(page.text,'html.parser')
-
     generate_report(get_content(soup))
     
