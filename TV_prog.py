@@ -39,13 +39,14 @@ def get_content(soup):
             if a.text: 
                 desc_url = a['href']
         soup_desc = bs4.BeautifulSoup(requests.get(desc_url).text,'html.parser')
+        
         try:
             info['description'] = soup_desc.find(
                 'p',
                 {'class','synopsis-twoPart resume'}).getText().replace('\n','').replace('Lire la suite','')
         except AttributeError:
             info['description'] ='Aucune description'
-        
+            
         # Overview
         info['genre'] = find_element(soup_desc, 'div', 'class', 'overview-overviewSubtitle')
         
@@ -57,7 +58,7 @@ def get_content(soup):
                 info['casting'] =''   
         else:
             info['casting'] ='' 
-
+        
         # insert into data
         data[idy] = info
         idy += 1
@@ -68,13 +69,26 @@ def get_content(soup):
         full_txt = element.getText().replace('\n','').replace('  ','')
         sr_only = element.find('span',{'class': 'sr-only'}).getText().replace('\n','').replace('  ','')
         for _ in range(2): # 2 evening time slots
-            chaines.append(full_txt.replace(sr_only,''))  
+            chaines.append(full_txt.replace(sr_only,'')) 
             
+    ### Find images
+    img_link = []
+    for element in soup.find_all('div',{'class': 'pictureTagGenerator pictureTagGenerator-ratio-5-7'}):
+        if element.find('img')['src'].startswith('https'):
+            img_link.append(element.find('img')['src'])
+        elif element.find('img')['data-src'].startswith('https'):
+            img_link.append(element.find('img')['data-src'])
+        else:
+            img_link.append('no image')
+    # Cut list at length of channel list
+    img_link = img_link[:len(chaines)]
+    
     ### create and clean dataframe
     df = pd.DataFrame(data).T
 
-    # append channels
+    # append channels and images
     df['chaines'] = chaines
+    df['images'] = img_link
 
     # merge broadcast columns
     df['diffusion'] = df.apply(lambda x: x['new']+x['live']+x['rebroadcast'],axis=1)
@@ -92,6 +106,7 @@ def generate_report(df):
                 h1 {color: #311B92;}\n \
                 h2 {color: #0D47A1;}\n \
                 h3 {color: #2196F3;}\n \
+                img {border-radius: 5px;}\n \
             </style>\n \
             <title>Programme TV</title>\n</head>\n')
         # body
@@ -110,6 +125,10 @@ def generate_report(df):
                 extract['titre'],
                 extract['sous_titre'],
             ))
+            
+            # add image
+            f.write('<img src="{}" alt="image" />\n'.format(extract['images']))
+            
             # write meta
             f.write('<p><em>{} - {} - {} - {} - {}</em></p>\n'.format(
                 extract['type'],
@@ -118,6 +137,7 @@ def generate_report(df):
                 extract['genre'],
                 extract['casting'],
             ))
+            
             # write desc
             f.write('<p>{}</p>\n'.format(
                 extract['description'],
@@ -130,5 +150,7 @@ if __name__ == '__main__':
     url = 'https://www.programme-tv.net/'
     page = requests.get(url)
     soup = bs4.BeautifulSoup(page.text,'html.parser')
-    generate_report(get_content(soup))
+
+    df = get_content(soup)
+    generate_report(df)
     
