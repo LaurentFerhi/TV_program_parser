@@ -154,6 +154,14 @@ def generate_report(df,name_out):
         # eof
         f.write('</div>\n</body>\n</html>')
 
+def launch(name_out):
+    url = 'https://www.programme-tv.net/'
+    page = requests.get(url)
+    soup = bs4.BeautifulSoup(page.text,'html.parser')
+
+    df = get_content(soup)
+    generate_report(df,name_out)
+
 if __name__ == '__main__':
 
     name_out = 'Programme.html'
@@ -161,11 +169,8 @@ if __name__ == '__main__':
     if name_out in os.listdir():
         if date.fromtimestamp(os.path.getmtime(name_out)) == date.today():
             pass
+        else:
+            launch(name_out)
     else:
-        url = 'https://www.programme-tv.net/'
-        page = requests.get(url)
-        soup = bs4.BeautifulSoup(page.text,'html.parser')
-
-        df = get_content(soup)
-        generate_report(df,name_out)
+    	launch(name_out)
     
