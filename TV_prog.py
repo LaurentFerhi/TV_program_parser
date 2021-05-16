@@ -71,25 +71,12 @@ def get_content(soup):
         sr_only = element.find('span',{'class': 'sr-only'}).getText().replace('\n','').replace('  ','')
         for _ in range(2): # 2 evening time slots
             chaines.append(full_txt.replace(sr_only,'')) 
-            
-    ### Import des images
-    img_link = []
-    for element in soup.find_all('div',{'class': 'pictureTagGenerator pictureTagGenerator-ratio-5-7'}):
-        if element.find('img')['src'].startswith('https'):
-            img_link.append(element.find('img')['src'])
-        elif element.find('img')['data-src'].startswith('https'):
-            img_link.append(element.find('img')['data-src'])
-        else:
-            img_link.append('no image')
-    # Coupe la liste à la longeuer de la liste chaines (les autres images ne sont pas pertinentes)
-    img_link = img_link[:len(chaines)]
     
     ### Création dataframe
     df = pd.DataFrame(data).T
 
     # append des chaines et des liens d'image
     df['chaines'] = chaines
-    df['images'] = img_link
 
     # merge des colonnes de diffusion
     df['diffusion'] = df.apply(lambda x: x['new']+x['live']+x['rebroadcast'],axis=1)
@@ -134,9 +121,6 @@ def generate_report(df,name_out):
                     extract['titre'],
                     extract['sous_titre'],
                 ))
-
-            # Images
-            f.write('<img src="{}" alt="image" />\n'.format(extract['images']))
             
             # infos meta
             f.write('<p><em>{} - {} - {} - {} - {}</em></p>\n'.format(
